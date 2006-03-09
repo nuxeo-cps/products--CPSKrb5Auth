@@ -1,0 +1,12 @@
+
+INSTALLATION
+------------
+
+- add a "CPS krb5 auth" object in the root of the portal
+  (a 'krb5_authentication' object will be added)
+
+- add a RAM cache manager in the portal.
+
+- in 'krb5_authentication' enable the RAM cache.
+
+- delete the 'cookie_authentication' object

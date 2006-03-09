@@ -1,0 +1,4 @@
+
+- CPSUserFolder >= 0.8.0
+
+- krb5 python module

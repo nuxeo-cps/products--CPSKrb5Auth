@@ -1,0 +1,12 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    >
+
+  <adapter
+      factory=".exportimport.Krb5AuthXMLAdapter"
+      provides="Products.GenericSetup.interfaces.IBody"
+      for=".interfaces.IKrb5Auth
+           Products.GenericSetup.interfaces.ISetupEnviron"
+      />
+
+</configure>

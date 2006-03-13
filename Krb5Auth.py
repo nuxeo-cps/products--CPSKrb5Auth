@@ -12,7 +12,7 @@
 #
 ##############################################################################
 """
-$Id:$
+$Id$
 """
 
 from base64 import encodestring
@@ -23,6 +23,8 @@ from OFS.Folder import Folder
 from OFS.Cache import Cacheable
 from ZPublisher import BeforeTraverse
 
+from zope.interface import implements
+
 try:
     import krb5
 except ImportError:
@@ -31,11 +33,15 @@ except ImportError:
 else:
     HAS_KRB5 = True
 
+from interfaces import IKrb5Auth
+
 class Krb5Auth(Folder, Cacheable):
     """Authenticates users against krb5 without exposing the password in a
     cookie or in RAM.
     """
     meta_type = 'CPS Krb5 Auth'
+
+    implements(IKrb5Auth)
 
     name_req_variable = '__ac_name'
     pw_req_variable = '__ac_password'

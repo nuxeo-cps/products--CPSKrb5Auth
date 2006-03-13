@@ -1,4 +1,9 @@
 
+from Products.GenericSetup import EXTENSION
+from Products.GenericSetup import profile_registry
+
+from Products.CPSCore.interfaces import ICPSSite
+
 import Krb5Auth
 
 def initialize(registrar):
@@ -8,4 +13,12 @@ def initialize(registrar):
                       Krb5Auth.manage_addKrb5Auth,),
         icon='krb5_auth.png',
     )
+
+    profile_registry.registerProfile('default',
+        'CPS Krb5 authentication',
+        'Krb5 authentication setup for a CPS 3.4 site',
+        'profiles/default',
+        'CPSKrb5Auth',
+        EXTENSION,
+        for_=ICPSSite)
 

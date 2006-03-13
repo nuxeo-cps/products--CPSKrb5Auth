@@ -22,6 +22,7 @@ from Globals import InitializeClass, HTMLFile
 from OFS.Folder import Folder
 from OFS.Cache import Cacheable
 from ZPublisher import BeforeTraverse
+from Acquisition import aq_inner, aq_parent
 
 from zope.interface import implements
 
@@ -54,18 +55,19 @@ class Krb5Auth(Folder, Cacheable):
     def __call__(self, container, request):
         """Update the request with _auth information"""
         if not HAS_KRB5:
-            LOG("Krb5Auth", INFO, "The krb5 module must be installed.")
+            LOG("CPSKrb5Auth", INFO, "The krb5 module must be installed.")
             return
 
         cacheable = self.ZCacheable_isCachingEnabled()
         if not cacheable:
-            LOG("Krb5Auth", INFO, "The cache must be enabled on krb5_auth.")
+            LOG("CPSKrb5Auth", INFO,
+                "The cache must be enabled on 'krb5_authentication'.")
             return
 
         keyset = self._computeCacheKey(request)
         ac = self.ZCacheable_get(keywords=keyset)
         if ac is not None:
-            LOG("Krb5Auth", DEBUG, "Got %s from the authentication cache." % ac)
+            LOG("CPSKrb5Auth", DEBUG, "Got %s from the cache." % ac)
             request._auth = ac
 
         uid, name = self._getUserInfo(request)
@@ -105,20 +107,20 @@ class Krb5Auth(Folder, Cacheable):
             host = request.get('REMOTE_ADDR')
         return {'id': browserId, 'host': host}
 
-    # Installation and removal of traversal hooks.
-    def manage_beforeDelete(self, item, container):
-        if item is self:
-            handle = self.meta_type + '/' + self.getId()
-            BeforeTraverse.unregisterBeforeTraverse(container, handle)
-
-    def manage_afterAdd(self, item, container):
-        if item is self:
-            handle = self.meta_type + '/' + self.getId()
-            container = container.this()
-            nc = BeforeTraverse.NameCaller(self.getId())
-            BeforeTraverse.registerBeforeTraverse(container, nc, handle)
-
 InitializeClass(Krb5Auth)
+
+def registerHook(ob, event):
+    handle = ob.meta_type + '/' + ob.getId()
+    container = aq_inner(aq_parent(ob))
+    nc = BeforeTraverse.NameCaller(ob.getId())
+    BeforeTraverse.registerBeforeTraverse(container, nc, handle)
+    LOG("CPSKrb5Auth", DEBUG, "Registered BeforeTraverse hook")
+
+def unregisterHook(ob, event):
+    handle = ob.meta_type + '/' + ob.getId()
+    container = aq_inner(aq_parent(ob))
+    BeforeTraverse.unregisterBeforeTraverse(container, handle)
+    LOG("CPSKrb5Auth", DEBUG, "Unregistered BeforeTraverse hook")
 
 manage_addKrb5AuthForm = HTMLFile('zmi/addKrb5Auth', globals())
 manage_addKrb5AuthForm.__name__ = 'addKrb5Auth'

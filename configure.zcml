@@ -9,4 +9,16 @@
            Products.GenericSetup.interfaces.ISetupEnviron"
       />
 
+  <subscriber
+      for="Products.CPSKrb5Auth.interfaces.IKrb5Auth
+           zope.app.container.interfaces.IObjectAddedEvent"
+      handler="Products.CPSKrb5Auth.Krb5Auth.registerHook"
+      />
+
+  <subscriber
+      for="Products.CPSKrb5Auth.interfaces.IKrb5Auth
+           zope.app.container.interfaces.IObjectRemovedEvent"
+      handler="Products.CPSKrb5Auth.Krb5Auth.unregisterHook"
+      />
+
 </configure>

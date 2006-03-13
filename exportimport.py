@@ -5,13 +5,15 @@
 from Products.GenericSetup.utils import exportObjects
 from Products.GenericSetup.utils import importObjects
 from Products.GenericSetup.utils import PropertyManagerHelpers
+from Products.GenericSetup.utils import ObjectManagerHelpers
 from Products.GenericSetup.utils import XMLAdapterBase
 
 from Products.CMFCore.utils import getToolByName
 
 from interfaces import IKrb5Auth
 
-class Krb5AuthXMLAdapter(XMLAdapterBase, PropertyManagerHelpers):
+class Krb5AuthXMLAdapter(XMLAdapterBase, ObjectManagerHelpers,
+                         PropertyManagerHelpers):
     """XML im- and exporter for Krb5Auth.
     """
     __used_for__ = IKrb5Auth
@@ -25,6 +27,8 @@ class Krb5AuthXMLAdapter(XMLAdapterBase, PropertyManagerHelpers):
         """
         node = self._getObjectNode('object')
         node.appendChild(self._extractProperties())
+        node.appendChild(self._extractObjects())
+
         self._logger.info('Krb5 authentication exported.')
         return node
 
@@ -33,7 +37,10 @@ class Krb5AuthXMLAdapter(XMLAdapterBase, PropertyManagerHelpers):
         """
         if self.environ.shouldPurge():
             self._purgeProperties()
+            self._purgeObjects()
+
         self._initProperties(node)
+        self._initObjects(node)
         self._logger.info('Krb5 authentication imported.')
 
 def importKrb5Auth(context):

@@ -1,10 +1,13 @@
 
 from Products.GenericSetup import EXTENSION
 from Products.GenericSetup import profile_registry
+from Products.CMFCore.DirectoryView import registerDirectory
 
 from Products.CPSCore.interfaces import ICPSSite
 
 import Krb5Auth
+
+registerDirectory('skins', globals())
 
 def initialize(registrar):
 

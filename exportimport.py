@@ -10,10 +10,12 @@ from Products.GenericSetup.utils import XMLAdapterBase
 
 from Products.CMFCore.utils import getToolByName
 
+from Products.CPSUtil.cachemanagersetup import CacheableHelpers
+
 from interfaces import IKrb5Auth
 
 class Krb5AuthXMLAdapter(XMLAdapterBase, ObjectManagerHelpers,
-                         PropertyManagerHelpers):
+                         PropertyManagerHelpers, CacheableHelpers):
     """XML im- and exporter for Krb5Auth.
     """
     __used_for__ = IKrb5Auth
@@ -29,6 +31,10 @@ class Krb5AuthXMLAdapter(XMLAdapterBase, ObjectManagerHelpers,
         node.appendChild(self._extractProperties())
         node.appendChild(self._extractObjects())
 
+        child = self._extractCacheableManagerAssociation()
+        if child is not None:
+            node.appendChild(child)
+
         self._logger.info('Krb5 authentication exported.')
         return node
 
@@ -38,9 +44,12 @@ class Krb5AuthXMLAdapter(XMLAdapterBase, ObjectManagerHelpers,
         if self.environ.shouldPurge():
             self._purgeProperties()
             self._purgeObjects()
+            self._purgeCacheableManagerAssociation()
 
         self._initProperties(node)
         self._initObjects(node)
+        self._initCacheableManagerAssociation(node)
+
         self._logger.info('Krb5 authentication imported.')
 
 def importKrb5Auth(context):

@@ -107,6 +107,9 @@ class Krb5Auth(Folder, Cacheable):
             self.ZCacheable_set(ac, keywords=keyset)
             self.storeAuthorization(keyset, ac)
             request._auth = ac
+        else:
+            # remove session id
+            request.RESPONSE.expireCookie(SESSION_ID_VAR, path='/')
 
     # Public API
 

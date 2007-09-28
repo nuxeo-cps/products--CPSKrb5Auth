@@ -69,6 +69,7 @@ class Krb5Auth(Folder, Cacheable):
         if ac is not None:
             LOG("CPSKrb5Auth", DEBUG, "Got %s from the cache." % ac)
             request._auth = ac
+            return
 
         uid, name = self._getUserInfo(request)
         password = request.get(self.pw_req_variable)

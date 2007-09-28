@@ -82,6 +82,21 @@ class Krb5Auth(Folder, Cacheable):
             request._auth = ac
             return
 
+        # if the user has a session id, attempt to obtain an authorization string
+        # (e.g. from a remote server)
+        if keyset['id'] is not None:
+            ac = self.getAuthorization(keyset)
+            if ac is not None:
+                LOG("CPSKrb5Auth", DEBUG, "Got an authorization string %s." % ac)
+
+                # store the string in the local cache again
+                self.ZCacheable_set(ac, keywords=keyset)
+                LOG("CPSKrb5Auth", DEBUG, "Added %s to the cache." % ac)
+
+                request._auth = ac
+                return
+
+        # authenticate the user
         uid, name = self._getUserInfo(request)
         if name is None or password is None:
             return
@@ -89,11 +104,35 @@ class Krb5Auth(Folder, Cacheable):
         if self._checkPassword(name, password):
             ac = 'CLCert %s' % encodestring(uid)
             self.ZCacheable_set(ac, keywords=keyset)
+            self.storeAuthorization(keyset, ac)
             request._auth = ac
+
+    # Public API
 
     security.declarePublic('expireSession')
     def expireSession(self, request):
+        keyset = self._computeCacheKey(request, create=False)
+        self.expireAuthorization(keyset)
         request.RESPONSE.expireCookie(SESSION_ID_VAR, path='/')
+
+    # Extensions
+
+    def getAuthorization(self, keyset):
+        """To override: implement an authentication server, Single-Sign-On, etc.
+        """
+        return None
+
+    def storeAuthorization(self, keyset, ac):
+        """To override: implement an authentication server, Single-Sign-On, etc.
+        """
+        return
+
+    def expireAuthorization(self, keyset):
+        """To override: implement an authentication server, Single-Sign-On, etc.
+        """
+        return
+
+    # Private API
 
     def _getUserInfo(self, request):
         """Retrieve user information from the request (typically request.form)

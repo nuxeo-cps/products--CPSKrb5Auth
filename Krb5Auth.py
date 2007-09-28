@@ -16,13 +16,16 @@ $Id$
 """
 
 from base64 import encodestring
-from zLOG import LOG, DEBUG, INFO
+from zLOG import LOG, DEBUG, INFO, ERROR
 
+from AccessControl import ClassSecurityInfo
+from Acquisition import aq_inner, aq_parent
 from Globals import InitializeClass, HTMLFile
 from OFS.Folder import Folder
 from OFS.Cache import Cacheable
 from ZPublisher import BeforeTraverse
-from Acquisition import aq_inner, aq_parent
+
+from Products.Sessions.BrowserIdManager import getNewBrowserId
 
 from zope.interface import implements
 
@@ -35,6 +38,8 @@ else:
     HAS_KRB5 = True
 
 from interfaces import IKrb5Auth
+
+SESSION_ID_VAR = '_krb5auth_id'
 
 class Krb5Auth(Folder, Cacheable):
     """Authenticates users against krb5 without exposing the password in a
@@ -52,19 +57,25 @@ class Krb5Auth(Folder, Cacheable):
         Cacheable.manage_options
     )
 
+    security = ClassSecurityInfo()
+
     def __call__(self, container, request):
-        """Update the request with _auth information"""
+        """Update the request with _auth information.
+        """
         if not HAS_KRB5:
             LOG("CPSKrb5Auth", INFO, "The krb5 module must be installed.")
             return
 
-        cacheable = self.ZCacheable_isCachingEnabled()
-        if not cacheable:
-            LOG("CPSKrb5Auth", INFO,
+        # is the request authenticating?
+        password = request.get(self.pw_req_variable)
+        create_session = password is not None
+        keyset = self._computeCacheKey(request, create_session)
+
+        if not self.ZCacheable_isCachingEnabled():
+            LOG("CPSKrb5Auth", ERROR,
                 "The cache must be enabled on 'krb5_authentication'.")
             return
 
-        keyset = self._computeCacheKey(request)
         ac = self.ZCacheable_get(keywords=keyset)
         if ac is not None:
             LOG("CPSKrb5Auth", DEBUG, "Got %s from the cache." % ac)
@@ -72,8 +83,6 @@ class Krb5Auth(Folder, Cacheable):
             return
 
         uid, name = self._getUserInfo(request)
-        password = request.get(self.pw_req_variable)
-
         if name is None or password is None:
             return
 
@@ -81,6 +90,10 @@ class Krb5Auth(Folder, Cacheable):
             ac = 'CLCert %s' % encodestring(uid)
             self.ZCacheable_set(ac, keywords=keyset)
             request._auth = ac
+
+    security.declarePublic('expireSession')
+    def expireSession(self, request):
+        request.RESPONSE.expireCookie(SESSION_ID_VAR, path='/')
 
     def _getUserInfo(self, request):
         """Retrieve user information from the request (typically request.form)
@@ -99,15 +112,25 @@ class Krb5Auth(Folder, Cacheable):
             return False
         return True
 
-    def _computeCacheKey(self, request):
+    def _computeCacheKey(self, request, create=False):
         """Compute the cache key set based on host info and session id."""
-        mgr = request.SESSION.getBrowserIdManager()
-        browserId = mgr.getBrowserId(create=True)
+        sessionId = self._getSessionId(request, create)
         host = request.get('HTTP_X_FORWARDED_FOR')
         if not host:
             host = request.get('REMOTE_ADDR')
-        return {'id': browserId, 'host': host}
+        return {'id': sessionId, 'host': host}
 
+    def _getSessionId(self, request, create=False):
+        sessionId = request.cookies.get(SESSION_ID_VAR)
+        if create and sessionId is None:
+            sessionId = self._createNewSessionId()
+            request.RESPONSE.setCookie(SESSION_ID_VAR, sessionId)
+        return sessionId
+
+    def _createNewSessionId(self):
+        # use the session manager's browser id
+        return getNewBrowserId()
+        
 InitializeClass(Krb5Auth)
 
 def registerHook(ob, event):

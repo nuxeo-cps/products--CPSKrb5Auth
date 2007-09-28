@@ -14,9 +14,8 @@
 """
 $Id$
 """
-
+import logging
 from base64 import encodestring
-from zLOG import LOG, DEBUG, INFO, ERROR
 
 from AccessControl import ClassSecurityInfo
 from Acquisition import aq_inner, aq_parent
@@ -29,10 +28,12 @@ from Products.Sessions.BrowserIdManager import getNewBrowserId
 
 from zope.interface import implements
 
+logger = logging.getLogger("CPSKrb5Auth.Krb5Auth")
+
 try:
     import krb5
 except ImportError:
-    LOG("Krb5Auth", INFO, "Could not import krb5.")
+    logger.error("Could not import krb5.")
     HAS_KRB5 = False
 else:
     HAS_KRB5 = True
@@ -40,6 +41,7 @@ else:
 from interfaces import IKrb5Auth
 
 SESSION_ID_VAR = '_krb5auth_id'
+
 
 class Krb5Auth(Folder, Cacheable):
     """Authenticates users against krb5 without exposing the password in a
@@ -63,7 +65,7 @@ class Krb5Auth(Folder, Cacheable):
         """Update the request with _auth information.
         """
         if not HAS_KRB5:
-            LOG("CPSKrb5Auth", INFO, "The krb5 module must be installed.")
+            logger.error("The krb5 module must be installed.")
             return
 
         # is the request authenticating?
@@ -72,13 +74,12 @@ class Krb5Auth(Folder, Cacheable):
         keyset = self._computeCacheKey(request, create_session)
 
         if not self.ZCacheable_isCachingEnabled():
-            LOG("CPSKrb5Auth", ERROR,
-                "The cache must be enabled on 'krb5_authentication'.")
+            logger.error("The cache must be enabled on 'krb5_authentication'.")
             return
 
         ac = self.ZCacheable_get(keywords=keyset)
         if ac is not None:
-            LOG("CPSKrb5Auth", DEBUG, "Got %s from the cache." % ac)
+            logger.debug("Got %s from the cache." % ac)
             request._auth = ac
             return
 
@@ -87,11 +88,11 @@ class Krb5Auth(Folder, Cacheable):
         if keyset['id'] is not None:
             ac = self.getAuthorization(keyset)
             if ac is not None:
-                LOG("CPSKrb5Auth", DEBUG, "Got an authorization string %s." % ac)
+                logger.debug("Got an authorization string %s." % ac)
 
                 # store the string in the local cache again
                 self.ZCacheable_set(ac, keywords=keyset)
-                LOG("CPSKrb5Auth", DEBUG, "Added %s to the cache." % ac)
+                logger.debug("Added %s to the cache." % ac)
 
                 request._auth = ac
                 return
@@ -177,13 +178,13 @@ def registerHook(ob, event):
     container = aq_inner(aq_parent(ob))
     nc = BeforeTraverse.NameCaller(ob.getId())
     BeforeTraverse.registerBeforeTraverse(container, nc, handle)
-    LOG("CPSKrb5Auth", DEBUG, "Registered BeforeTraverse hook")
+    logger.debug("Registered BeforeTraverse hook")
 
 def unregisterHook(ob, event):
     handle = ob.meta_type + '/' + ob.getId()
     container = aq_inner(aq_parent(ob))
     BeforeTraverse.unregisterBeforeTraverse(container, handle)
-    LOG("CPSKrb5Auth", DEBUG, "Unregistered BeforeTraverse hook")
+    logger.debug("Unregistered BeforeTraverse hook")
 
 manage_addKrb5AuthForm = HTMLFile('zmi/addKrb5Auth', globals())
 manage_addKrb5AuthForm.__name__ = 'addKrb5Auth'

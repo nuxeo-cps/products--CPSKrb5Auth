@@ -70,7 +70,10 @@ class Krb5Auth(Folder, Cacheable):
 
         # is the request authenticating?
         password = request.get(self.pw_req_variable)
-        create_session = password is not None
+        create_session = False
+        if password is not None:
+            self._delRequestVar(request, self.pw_req_variable)
+            create_session = True
         keyset = self._computeCacheKey(request, create_session)
 
         if not self.ZCacheable_isCachingEnabled():
@@ -144,6 +147,7 @@ class Krb5Auth(Folder, Cacheable):
         name = request.get(self.name_req_variable)
         if name is None:
             return None, None
+        self._delRequestVar(request, self.name_req_variable)
         uid = name
         if '/' in name:
             uid = name.split('/')[0]
@@ -174,6 +178,16 @@ class Krb5Auth(Folder, Cacheable):
         # use the session manager's browser id
         return getNewBrowserId()
         
+    def _delRequestVar(self, request, name):
+        try: del request.other[name]
+        except: pass
+        try: del request.form[name]
+        except: pass
+        try: del request.cookies[name]
+        except: pass
+        try: del request.environ[name]
+        except: pass
+
 InitializeClass(Krb5Auth)
 
 def registerHook(ob, event):

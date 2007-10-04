@@ -16,6 +16,10 @@ REQUEST = context.REQUEST
 if REQUEST.has_key('portal_skin'):
     context.portal_skins.clearSkinCookie()
 
+# remove the session id cookie
+mgr = REQUEST.SESSION.getBrowserIdManager()
+mgr.flushBrowserIdCookie()
+
 # expire the user session
 uf = getToolByName(context, 'krb5_authentication', None)
 if uf is not None:

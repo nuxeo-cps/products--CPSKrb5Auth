@@ -171,7 +171,7 @@ class Krb5Auth(Folder, Cacheable):
         sessionId = request.cookies.get(SESSION_ID_VAR)
         if create and sessionId is None:
             sessionId = self._createNewSessionId()
-            request.RESPONSE.setCookie(SESSION_ID_VAR, sessionId)
+            request.RESPONSE.setCookie(SESSION_ID_VAR, sessionId, path='/')
         return sessionId
 
     def _createNewSessionId(self):

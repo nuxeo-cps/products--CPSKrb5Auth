@@ -24,6 +24,8 @@ from OFS.Folder import Folder
 from OFS.Cache import Cacheable
 from ZPublisher import BeforeTraverse
 
+from Products.CMFCore.utils import getToolByName
+
 from Products.Sessions.BrowserIdManager import getNewBrowserId
 
 from zope.interface import implements
@@ -111,8 +113,7 @@ class Krb5Auth(Folder, Cacheable):
             self.storeAuthorization(keyset, ac)
             request._auth = ac
         else:
-            # remove session id
-            request.RESPONSE.expireCookie(SESSION_ID_VAR, path='/')
+            request.RESPONSE.expireCookie(SESSION_ID_VAR)
 
     # Public API
 
@@ -120,7 +121,8 @@ class Krb5Auth(Folder, Cacheable):
     def expireSession(self, request):
         keyset = self._computeCacheKey(request, create=False)
         self.expireAuthorization(keyset)
-        request.RESPONSE.expireCookie(SESSION_ID_VAR, path='/')
+        request.RESPONSE.expireCookie(SESSION_ID_VAR)
+        logger.debug("Expire session %s", keyset)
 
     # Extensions
 
@@ -165,19 +167,32 @@ class Krb5Auth(Folder, Cacheable):
         host = request.get('HTTP_X_FORWARDED_FOR')
         if not host:
             host = request.get('REMOTE_ADDR')
-        return {'id': sessionId, 'host': host}
+        site = self._getAndCacheSiteUrl(request)
+        return {
+            'id': sessionId,
+            'host': host,
+            'site': site,
+            }
 
     def _getSessionId(self, request, create=False):
         sessionId = request.cookies.get(SESSION_ID_VAR)
         if create and sessionId is None:
             sessionId = self._createNewSessionId()
-            request.RESPONSE.setCookie(SESSION_ID_VAR, sessionId, path='/')
+            request.RESPONSE.setCookie(SESSION_ID_VAR, sessionId)
         return sessionId
 
     def _createNewSessionId(self):
         # use the session manager's browser id
         return getNewBrowserId()
-        
+
+    def _getAndCacheSiteUrl(self, request):
+        site = request.get('_krb5_auth_site')
+        if site is None:
+            utool = getToolByName(self, 'portal_url')
+            site = utool.getPortalObject().absolute_url()
+            request['_krb5_auth_site'] = site
+        return site
+
     def _delRequestVar(self, request, name):
         try: del request.other[name]
         except: pass

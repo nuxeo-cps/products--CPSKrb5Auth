@@ -1,0 +1,10 @@
+
+WARNING
+
+The CPSKrb5Auth is obsolete: it is not compatible anymore with the latest
+versions of CPSUserFolder.
+
+The functionalities of CPSKrb5Auth have been integrated in a more generic
+product: CPSExtendedAuth
+http://svn.nuxeo.org/trac/pub/browser/CPS3/products/CPSExtendedAuth/trunk
+
